@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 # Clase abstracta
 class Animal(ABC):
     @abstractmethod
-    def hacer_sonido(self):
-        pass
+   def hacer_sonido(self):
+    print(f"{self.nombre} hace un sonido.") # Este método será sobrescrito por Perro y Gato.
 
 
 # Clase principal
