@@ -66,7 +66,7 @@ class Gato(Mascota):
         print(f"{self.nombre} dice: ¡Miau!")
 
 
-# Agrupación de objetos
+# Esta clase agrupa varias mascotas en una lista
 class Veterinaria:
     def __init__(self, nombre):
         self.nombre = nombre
