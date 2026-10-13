@@ -1,6 +1,8 @@
 
 from abc import ABC, abstractmethod
 import threading
+import json
+import os
 
 # Excepcion personalizada
 class MascotaNoEncontradaError(Exception):
@@ -113,6 +115,63 @@ class Veterinaria:
         print(f"\nMascotas de {self.nombre}:")
         for mascota in self.mascotas:
             print(mascota.describir())
+            
+    # Guardar las mascotas en un archivo JSON
+    def guardar_json(self, archivo):
+        datos = []
+
+        for mascota in self.mascotas:
+            datos.append({
+                "nombre": mascota.nombre,
+                "especie": mascota._especie,
+                "edad": mascota.obtener_edad(),
+                "peso": mascota.peso
+            })
+
+        try:
+            with open(archivo, "w", encoding="utf-8") as f:
+                json.dump(datos, f, indent=4, ensure_ascii=False)
+
+            print("Mascotas guardadas correctamente.")
+
+        except OSError as error:
+            print("Error al guardar el archivo:", error)
+
+    # Leer mascotas desde un archivo JSON
+    def leer_json(self, archivo):
+        if not os.path.exists(archivo):
+            raise FileNotFoundError("El archivo no existe.")
+
+        try:
+            with open(archivo, "r", encoding="utf-8") as f:
+                datos = json.load(f)
+
+            mascotas_leidas = []
+
+            for dato in datos:
+                if dato["especie"].lower() == "perro":
+                    mascota = Perro(
+                        dato["nombre"], dato["especie"],
+                        dato["edad"], dato["peso"]
+                    )
+                elif dato["especie"].lower() == "gato":
+                    mascota = Gato(
+                        dato["nombre"], dato["especie"],
+                        dato["edad"], dato["peso"]
+                    )
+                else:
+                    mascota = Mascota(
+                        dato["nombre"], dato["especie"],
+                        dato["edad"], dato["peso"]
+                    )
+
+                mascotas_leidas.append(mascota)
+
+            return mascotas_leidas
+
+        except json.JSONDecodeError as error:
+            raise ValueError("El archivo JSON tiene datos dañados.") from error
+
 
 
 # Crear las mascotas
@@ -194,3 +253,17 @@ hilo1.join()
 hilo2.join()
 
 print("Todas las tareas terminaron.")
+
+
+# Ejercicio 6: guardar y recuperar mascotas
+veterinaria.guardar_json("mascotas.json")
+
+try:
+    mascotas_recuperadas = veterinaria.leer_json("mascotas.json")
+
+    print("\nMascotas recuperadas del archivo:")
+    for mascota in mascotas_recuperadas:
+        print(mascota.describir())
+
+except (FileNotFoundError, ValueError) as error:
+    print("No se pudieron recuperar las mascotas:", error)
