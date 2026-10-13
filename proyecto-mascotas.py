@@ -108,6 +108,63 @@ class RegistroMascotas:
         return self.mascotas
 
 
+# Clase encargada de guardar y leer archivos JSON
+class ArchivoMascotas:
+
+    def guardar(self, mascotas, archivo):
+        datos = []
+
+        for mascota in mascotas:
+            datos.append({
+                "nombre": mascota.nombre,
+                "especie": mascota._especie,
+                "edad": mascota.obtener_edad(),
+                "peso": mascota.peso
+            })
+
+        try:
+            with open(archivo, "w", encoding="utf-8") as f:
+                json.dump(datos, f, indent=4, ensure_ascii=False)
+
+        except OSError as error:
+            raise OSError(
+                "No se pudieron guardar las mascotas."
+            ) from error
+
+    def leer(self, archivo):
+        try:
+            with open(archivo, "r", encoding="utf-8") as f:
+                datos = json.load(f)
+
+        except json.JSONDecodeError as error:
+            raise ValueError(
+                "El archivo JSON contiene datos dañados."
+            ) from error
+
+        mascotas = []
+
+        for dato in datos:
+            if dato["especie"].lower() == "perro":
+                mascota = Perro(
+                    dato["nombre"], dato["especie"],
+                    dato["edad"], dato["peso"]
+                )
+            elif dato["especie"].lower() == "gato":
+                mascota = Gato(
+                    dato["nombre"], dato["especie"],
+                    dato["edad"], dato["peso"]
+                )
+            else:
+                mascota = Mascota(
+                    dato["nombre"], dato["especie"],
+                    dato["edad"], dato["peso"]
+                )
+
+            mascotas.append(mascota)
+
+        return mascotas
+
+
 # Veterinaria utiliza un registro en lugar de heredar de Mascota
 class Veterinaria:
 
