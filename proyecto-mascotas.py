@@ -1,5 +1,12 @@
 from abc import ABC, abstractmethod
 
+# Interfaz que define cómo describir un objeto
+class Describible(ABC):
+
+    @abstractmethod
+    def describir(self):
+        pass
+
 # Clase abstracta que define el comportamiento de un animal
 class Animal(ABC):
 
@@ -8,7 +15,7 @@ class Animal(ABC):
         pass
 
 # Clase principal
-class Mascota(Animal):
+class Mascota(Animal, Describible):
     def __init__(self, nombre, especie, edad, peso):
         self.nombre = nombre
         self._especie = especie
@@ -23,6 +30,15 @@ class Mascota(Animal):
 
     def jugar(self):
         print(f"{self.nombre} está jugando.")
+        
+         # Describir los datos de la mascota
+    def describir(self):
+        return (
+            f"Nombre: {self.nombre}, "
+            f"Especie: {self._especie}, "
+            f"Edad: {self.__edad} años, "
+            f"Peso: {self.peso} kg"
+        )
 
     # Encapsulamiento: consultar la edad privada
     def obtener_edad(self):
