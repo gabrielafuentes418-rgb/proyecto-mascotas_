@@ -1,6 +1,6 @@
 
 from abc import ABC, abstractmethod
-
+import threading
 
 # Excepcion personalizada
 class MascotaNoEncontradaError(Exception):
@@ -166,3 +166,31 @@ try:
 
 except MascotaNoEncontradaError as error:
     print("\nError:", error)
+
+# Funcion que procesa una mascota
+def procesar_mascota(mascota):
+    print(f"Procesando a {mascota.nombre}...")
+    mascota.hacer_sonido()
+
+
+# Crear dos hilos
+hilo1 = threading.Thread(
+    target=procesar_mascota,
+    args=(mascota1,)
+)
+
+hilo2 = threading.Thread(
+    target=procesar_mascota,
+    args=(mascota2,)
+)
+
+# Iniciar los hilos
+print("\nIniciando tareas en paralelo:")
+hilo1.start()
+hilo2.start()
+
+# Esperar a que ambos terminen
+hilo1.join()
+hilo2.join()
+
+print("Todas las tareas terminaron.")
