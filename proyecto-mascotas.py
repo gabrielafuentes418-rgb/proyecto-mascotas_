@@ -171,6 +171,7 @@ class Veterinaria:
     def __init__(self, nombre):
         self.nombre = nombre
         self.registro = RegistroMascotas()
+        self.archivos = ArchivoMascotas()
 
     def agregar_mascota(self, mascota):
         self.registro.agregar(mascota)
@@ -190,78 +191,28 @@ class Veterinaria:
             print(mascota.describir())
 
     # Guardar los datos en JSON
+    
+    # Guardar mascotas utilizando la clase ArchivoMascotas
     def guardar_json(self, archivo):
-        datos = []
-
-        for mascota in self.registro.listar():
-            datos.append({
-                "nombre": mascota.nombre,
-                "especie": mascota._especie,
-                "edad": mascota.obtener_edad(),
-                "peso": mascota.peso
-            })
-
         try:
-            with open(archivo, "w", encoding="utf-8") as f:
-                json.dump(datos, f, indent=4, ensure_ascii=False)
-
-            print("\nMascotas guardadas correctamente.")
+            self.archivos.guardar(
+                self.registro.listar(), archivo
+            )
+            print("Mascotas guardadas correctamente.")
 
         except OSError as error:
-            print("Error al guardar el archivo:", error)
+            print("Error al guardar:", error)
 
-    # Leer los datos y reconstruir las mascotas
+    # Recuperar mascotas desde un archivo JSON
     def leer_json(self, archivo):
-        try:
-            with open(archivo, "r", encoding="utf-8") as f:
-                datos = json.load(f)
+        mascotas = self.archivos.leer(archivo)
 
-        except FileNotFoundError as error:
-            raise FileNotFoundError(
-                "El archivo de mascotas no existe."
-            ) from error
+        self.registro = RegistroMascotas()
 
-        except json.JSONDecodeError as error:
-            raise ValueError(
-                "El archivo JSON contiene datos dañados."
-            ) from error
+        for mascota in mascotas:
+            self.registro.agregar(mascota)
 
-        if not isinstance(datos, list):
-            raise ValueError("El archivo debe contener una lista.")
-
-        mascotas_leidas = []
-
-        try:
-            for dato in datos:
-                nombre = dato["nombre"]
-                especie = dato["especie"]
-                edad = dato["edad"]
-                peso = dato["peso"]
-
-                if not isinstance(nombre, str) or not nombre.strip():
-                    raise ValueError("El nombre no es valido.")
-
-                if not isinstance(edad, int) or edad < 0:
-                    raise ValueError("La edad no es valida.")
-
-                if not isinstance(peso, (int, float)) or peso < 0:
-                    raise ValueError("El peso no es valido.")
-
-                if especie.lower() == "perro":
-                    mascota = Perro(nombre, especie, edad, peso)
-                elif especie.lower() == "gato":
-                    mascota = Gato(nombre, especie, edad, peso)
-                else:
-                    mascota = Mascota(nombre, especie, edad, peso)
-
-                mascotas_leidas.append(mascota)
-
-        except (KeyError, TypeError, AttributeError) as error:
-            raise ValueError(
-                "Los datos del archivo no tienen el formato esperado."
-            ) from error
-
-        return mascotas_leidas
+        return mascotas
 
 
 # Funcion que se ejecutara en un hilo
