@@ -1,8 +1,8 @@
 
 from abc import ABC, abstractmethod
-import threading
 import json
-import os
+import threading
+
 
 # Excepcion personalizada
 class MascotaNoEncontradaError(Exception):
@@ -11,13 +11,15 @@ class MascotaNoEncontradaError(Exception):
 
 # Interfaz para describir objetos
 class Describible(ABC):
+
     @abstractmethod
     def describir(self):
         pass
 
 
-# Clase abstracta que representa un animal
+# Clase abstracta de los animales
 class Animal(ABC):
+
     @abstractmethod
     def hacer_sonido(self):
         pass
@@ -26,7 +28,7 @@ class Animal(ABC):
 # Clase principal de las mascotas
 class Mascota(Animal, Describible):
 
-    def __init__(self, nombre, especie, edad, peso):
+    def __init__(self, nombre, especie, edad=0, peso=0.0):
         self.nombre = nombre
         self._especie = especie
         self.__edad = edad
@@ -79,31 +81,45 @@ class Mascota(Animal, Describible):
         print(f"{self.nombre} hace un sonido.")
 
 
-# Clase Perro: sobrescribe hacer_sonido
+# Perro sobrescribe el metodo heredado
 class Perro(Mascota):
+
     def hacer_sonido(self):
         print(f"{self.nombre} dice: ¡Guau!")
 
 
-# Clase Gato: sobrescribe hacer_sonido
+# Gato sobrescribe el metodo heredado
 class Gato(Mascota):
+
     def hacer_sonido(self):
         print(f"{self.nombre} dice: ¡Miau!")
 
 
-# Clase que administra las mascotas
+# Composicion: clase que administra una lista de mascotas
+class RegistroMascotas:
+
+    def __init__(self):
+        self.mascotas = []
+
+    def agregar(self, mascota):
+        self.mascotas.append(mascota)
+
+    def listar(self):
+        return self.mascotas
+
+
+# Veterinaria utiliza un registro en lugar de heredar de Mascota
 class Veterinaria:
 
     def __init__(self, nombre):
         self.nombre = nombre
-        self.mascotas = []
+        self.registro = RegistroMascotas()
 
     def agregar_mascota(self, mascota):
-        self.mascotas.append(mascota)
+        self.registro.agregar(mascota)
 
-    # Buscar una mascota por su nombre
     def buscar_mascota(self, nombre):
-        for mascota in self.mascotas:
+        for mascota in self.registro.listar():
             if mascota.nombre.lower() == nombre.lower():
                 return mascota
 
@@ -113,14 +129,14 @@ class Veterinaria:
 
     def mostrar_mascotas(self):
         print(f"\nMascotas de {self.nombre}:")
-        for mascota in self.mascotas:
+        for mascota in self.registro.listar():
             print(mascota.describir())
-            
-    # Guardar las mascotas en un archivo JSON
+
+    # Guardar los datos en JSON
     def guardar_json(self, archivo):
         datos = []
 
-        for mascota in self.mascotas:
+        for mascota in self.registro.listar():
             datos.append({
                 "nombre": mascota.nombre,
                 "especie": mascota._especie,
@@ -132,138 +148,155 @@ class Veterinaria:
             with open(archivo, "w", encoding="utf-8") as f:
                 json.dump(datos, f, indent=4, ensure_ascii=False)
 
-            print("Mascotas guardadas correctamente.")
+            print("\nMascotas guardadas correctamente.")
 
         except OSError as error:
             print("Error al guardar el archivo:", error)
 
-    # Leer mascotas desde un archivo JSON
+    # Leer los datos y reconstruir las mascotas
     def leer_json(self, archivo):
-        if not os.path.exists(archivo):
-            raise FileNotFoundError("El archivo no existe.")
-
         try:
             with open(archivo, "r", encoding="utf-8") as f:
                 datos = json.load(f)
 
-            mascotas_leidas = []
+        except FileNotFoundError as error:
+            raise FileNotFoundError(
+                "El archivo de mascotas no existe."
+            ) from error
 
+        except json.JSONDecodeError as error:
+            raise ValueError(
+                "El archivo JSON contiene datos dañados."
+            ) from error
+
+        if not isinstance(datos, list):
+            raise ValueError("El archivo debe contener una lista.")
+
+        mascotas_leidas = []
+
+        try:
             for dato in datos:
-                if dato["especie"].lower() == "perro":
-                    mascota = Perro(
-                        dato["nombre"], dato["especie"],
-                        dato["edad"], dato["peso"]
-                    )
-                elif dato["especie"].lower() == "gato":
-                    mascota = Gato(
-                        dato["nombre"], dato["especie"],
-                        dato["edad"], dato["peso"]
-                    )
+                nombre = dato["nombre"]
+                especie = dato["especie"]
+                edad = dato["edad"]
+                peso = dato["peso"]
+
+                if not isinstance(nombre, str) or not nombre.strip():
+                    raise ValueError("El nombre no es valido.")
+
+                if not isinstance(edad, int) or edad < 0:
+                    raise ValueError("La edad no es valida.")
+
+                if not isinstance(peso, (int, float)) or peso < 0:
+                    raise ValueError("El peso no es valido.")
+
+                if especie.lower() == "perro":
+                    mascota = Perro(nombre, especie, edad, peso)
+                elif especie.lower() == "gato":
+                    mascota = Gato(nombre, especie, edad, peso)
                 else:
-                    mascota = Mascota(
-                        dato["nombre"], dato["especie"],
-                        dato["edad"], dato["peso"]
-                    )
+                    mascota = Mascota(nombre, especie, edad, peso)
 
                 mascotas_leidas.append(mascota)
 
-            return mascotas_leidas
+        except (KeyError, TypeError, AttributeError) as error:
+            raise ValueError(
+                "Los datos del archivo no tienen el formato esperado."
+            ) from error
 
-        except json.JSONDecodeError as error:
-            raise ValueError("El archivo JSON tiene datos dañados.") from error
-
-
-
-# Crear las mascotas
-mascota1 = Perro("Luna", "Perro", 3, 12.5)
-mascota2 = Gato("Michi", "Gato", 2, 4.2)
-mascota3 = Perro("Rocky", "Perro", 5, 18.0)
+        return mascotas_leidas
 
 
-# Mostrar informacion y acciones
-mascota1.mostrar()
-mascota2.mostrar("Datos")
-mascota1.comer()
-mascota2.dormir()
-mascota3.jugar()
-
-
-# Demostrar polimorfismo
-print("\nSonidos de las mascotas:")
-for mascota in [mascota1, mascota2, mascota3]:
-    mascota.hacer_sonido()
-
-
-# Comparar objetos
-mascota4 = Perro("Luna", "Perro", 3, 12.5)
-print("\n¿Son el mismo objeto?", mascota1 is mascota4)
-print("¿Son iguales por nombre?", mascota1 == mascota4)
-
-
-# Usar classmethod y staticmethod
-mascota5 = Mascota.desde_texto("Max,Perro,4,15.5")
-mascota5.mostrar()
-print("¿Max es adulta?", Mascota.es_adulta(
-    mascota5.obtener_edad()
-))
-
-
-# Registrar mascotas en la veterinaria
-veterinaria = Veterinaria("Amigos Peludos")
-veterinaria.agregar_mascota(mascota1)
-veterinaria.agregar_mascota(mascota2)
-veterinaria.agregar_mascota(mascota3)
-veterinaria.mostrar_mascotas()
-
-
-# Probar la excepcion personalizada
-try:
-    mascota = veterinaria.buscar_mascota("Luna")
-    print("\nMascota encontrada:", mascota.describir())
-
-    veterinaria.buscar_mascota("Toby")
-
-except MascotaNoEncontradaError as error:
-    print("\nError:", error)
-
-# Funcion que procesa una mascota
+# Funcion que se ejecutara en un hilo
 def procesar_mascota(mascota):
     print(f"Procesando a {mascota.nombre}...")
     mascota.hacer_sonido()
 
 
-# Crear dos hilos
-hilo1 = threading.Thread(
-    target=procesar_mascota,
-    args=(mascota1,)
-)
+# Programa principal
+def main():
 
-hilo2 = threading.Thread(
-    target=procesar_mascota,
-    args=(mascota2,)
-)
+    # Crear las mascotas
+    mascota1 = Perro("Luna", "Perro", 3, 12.5)
+    mascota2 = Gato("Michi", "Gato", 2, 4.2)
+    mascota3 = Perro("Rocky", "Perro", 5, 18.0)
 
-# Iniciar los hilos
-print("\nIniciando tareas en paralelo:")
-hilo1.start()
-hilo2.start()
+    # Crear la veterinaria y registrar las mascotas
+    veterinaria = Veterinaria("Amigos Peludos")
+    veterinaria.agregar_mascota(mascota1)
+    veterinaria.agregar_mascota(mascota2)
+    veterinaria.agregar_mascota(mascota3)
 
-# Esperar a que ambos terminen
-hilo1.join()
-hilo2.join()
+    # Mostrar informacion
+    veterinaria.mostrar_mascotas()
 
-print("Todas las tareas terminaron.")
+    # Demostrar polimorfismo
+    print("\nSonidos de las mascotas:")
+    for mascota in veterinaria.registro.listar():
+        mascota.hacer_sonido()
+
+    # Demostrar el uso de metodos
+    mascota1.comer()
+    mascota2.dormir()
+    mascota3.jugar()
+
+    # Demostrar comparacion
+    mascota4 = Perro("Luna", "Perro", 3, 12.5)
+    print("\n¿Son el mismo objeto?", mascota1 is mascota4)
+    print("¿Son iguales por nombre?", mascota1 == mascota4)
+
+    # Crear una mascota desde texto
+    mascota5 = Mascota.desde_texto("Max,Perro,4,15.5")
+    mascota5.mostrar()
+    print("¿Max es adulta?", Mascota.es_adulta(
+        mascota5.obtener_edad()
+    ))
+
+    # Demostrar excepcion personalizada
+    try:
+        mascota = veterinaria.buscar_mascota("Luna")
+        print("\nMascota encontrada:", mascota.describir())
+
+        veterinaria.buscar_mascota("Toby")
+
+    except MascotaNoEncontradaError as error:
+        print("Error:", error)
+
+    # Guardar las mascotas en JSON
+    veterinaria.guardar_json("mascotas.json")
+
+    # Leer y reconstruir las mascotas
+    try:
+        recuperadas = veterinaria.leer_json("mascotas.json")
+
+        print("\nMascotas recuperadas del archivo:")
+        for mascota in recuperadas:
+            print(mascota.describir())
+
+    except (FileNotFoundError, ValueError) as error:
+        print("Error al leer las mascotas:", error)
+
+    # Demostrar concurrencia con dos hilos
+    print("\nProcesamiento con hilos:")
+
+    hilo1 = threading.Thread(
+        target=procesar_mascota,
+        args=(mascota1,)
+    )
+
+    hilo2 = threading.Thread(
+        target=procesar_mascota,
+        args=(mascota2,)
+    )
+
+    hilo1.start()
+    hilo2.start()
+
+    hilo1.join()
+    hilo2.join()
+
+    print("Todas las tareas terminaron.")
 
 
-# Ejercicio 6: guardar y recuperar mascotas
-veterinaria.guardar_json("mascotas.json")
-
-try:
-    mascotas_recuperadas = veterinaria.leer_json("mascotas.json")
-
-    print("\nMascotas recuperadas del archivo:")
-    for mascota in mascotas_recuperadas:
-        print(mascota.describir())
-
-except (FileNotFoundError, ValueError) as error:
-    print("No se pudieron recuperar las mascotas:", error)
+if __name__ == "__main__":
+    main()
