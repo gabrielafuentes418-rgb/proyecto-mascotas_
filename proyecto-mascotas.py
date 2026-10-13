@@ -1,7 +1,3 @@
-
-from abc import ABC, abstractmethod
-
-
 from abc import ABC, abstractmethod
 
 # Clase abstracta que define el comportamiento de un animal
